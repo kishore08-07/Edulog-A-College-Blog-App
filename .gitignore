@@ -1,0 +1,48 @@
+# ========== Android Studio Project ==========
+
+# Ignore build outputs and generated files
+/build/
+**/build/
+captures/
+.externalNativeBuild/
+
+# Ignore local IDE settings
+.idea/
+*.iml
+
+# Gradle cache and local properties
+.gradle/
+local.properties
+
+# Keystore files (do not share signing credentials)
+*.jks
+*.keystore
+
+# Ignore OS-generated files
+.DS_Store
+Thumbs.db
+
+# Ignore compiled class/dex/apk/aab files
+*.class
+*.dex
+*.apk
+*.ap_
+*.aab
+
+# NDK / JNI compiled objects
+*.so
+obj/
+
+# Log and temporary files
+*.log
+*.swp
+*.tmp
+
+# Ignore crash reports and debug output
+*.stacktrace
+
+# ========== Firebase / Google Services (Optional) ==========
+
+# Ignore if you're not ready to expose these (replace with your own if needed)
+google-services.json
+

@@ -1,0 +1,20 @@
+package com.example.edulog.models
+
+data class Blog(
+    val id: String = "", // Document ID from Firestore
+    val title: String = "",
+    val content: String = "",
+    val authorId: String = "", // Firebase Auth UID
+    val authorName: String = "",
+    val authorRole: String = "", // "Student" or "Professor"
+    val authorDepartment: String = "", // Department code
+    val category: String = "", // "technical", "research", or "interview"
+    val timestamp: Long = System.currentTimeMillis(),
+    val lastModified: Long = System.currentTimeMillis()
+) {
+    companion object {
+        const val CATEGORY_TECHNICAL = "Technical"
+        const val CATEGORY_RESEARCH = "Research"
+        const val CATEGORY_INTERVIEW = "Interview"
+    }
+} 
