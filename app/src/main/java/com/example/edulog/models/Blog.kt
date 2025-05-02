@@ -13,8 +13,18 @@ data class Blog(
     val lastModified: Long = System.currentTimeMillis()
 ) {
     companion object {
-        const val CATEGORY_TECHNICAL = "Technical"
-        const val CATEGORY_RESEARCH = "Research"
-        const val CATEGORY_INTERVIEW = "Interview"
+        const val CATEGORY_TECHNICAL = "technical"
+        const val CATEGORY_RESEARCH = "research"
+        const val CATEGORY_INTERVIEW = "interview"
+        
+        // Get display name for category
+        fun getCategoryDisplayName(category: String): String {
+            return when (category.lowercase()) {
+                CATEGORY_TECHNICAL -> "Technical"
+                CATEGORY_RESEARCH -> "Research"
+                CATEGORY_INTERVIEW -> "Interview"
+                else -> "Other"
+            }
+        }
     }
 } 

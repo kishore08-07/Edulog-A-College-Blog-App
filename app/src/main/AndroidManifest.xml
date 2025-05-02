@@ -44,6 +44,9 @@
         <activity
             android:name=".DeleteAccountActivity"
             android:exported="false" />
+        <activity
+            android:name=".UserProfileActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

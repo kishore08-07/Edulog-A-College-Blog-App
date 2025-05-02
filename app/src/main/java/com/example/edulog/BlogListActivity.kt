@@ -2,6 +2,7 @@ package com.example.edulog
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -20,8 +21,6 @@ import com.google.android.material.chip.Chip
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import java.text.SimpleDateFormat
-import java.util.*
 
 class BlogListActivity : AppCompatActivity() {
     private lateinit var binding: ActivityBlogListBinding
@@ -48,13 +47,55 @@ class BlogListActivity : AppCompatActivity() {
     }
 
     private fun setupCategoryChips() {
-        binding.categoryChipGroup.setOnCheckedStateChangeListener { group, checkedIds ->
-            if (checkedIds.isNotEmpty()) {
-                val chip = findViewById<Chip>(checkedIds[0])
-                currentCategory = chip.text.toString()
-                updateBlogList()
+        // When a category chip is selected, update the blog list
+        binding.categoryChipGroup.setOnCheckedChangeListener { group, checkedId ->
+            if (checkedId == View.NO_ID) {
+                // If no chip is selected, show all blogs
+                filterByCategory("All")
+            } else {
+                val selectedChip = group.findViewById<Chip>(checkedId)
+                val category = selectedChip?.text?.toString() ?: "All"
+                filterByCategory(category)
             }
         }
+
+        // Set "All" chip as checked by default
+        binding.categoryChipGroup.check(binding.categoryChipGroup.getChildAt(0).id)
+    }
+
+    private fun filterByCategory(category: String) {
+        currentCategory = category
+        Log.d("BlogList", "Filtering by category: $currentCategory")
+
+        // Create the base query
+        val query = when (category) {
+            "All" -> {
+                db.collection("blogs")
+                    .orderBy("timestamp", Query.Direction.DESCENDING)
+            }
+            else -> {
+                val categoryValue = category.lowercase()
+                Log.d("BlogList", "Using category value for query: $categoryValue")
+                db.collection("blogs")
+                    .whereEqualTo("category", categoryValue)
+                    .orderBy("timestamp", Query.Direction.DESCENDING)
+            }
+        }
+
+        // Create adapter options
+        val options = FirestoreRecyclerOptions.Builder<Blog>()
+            .setQuery(query, Blog::class.java)
+            .build()
+
+        // Update adapter
+        blogAdapter?.stopListening()
+        blogAdapter = BlogAdapter(options, false)
+        binding.recyclerView.adapter = blogAdapter
+        blogAdapter?.startListening()
+    }
+
+    private fun updateBlogList() {
+        filterByCategory(currentCategory)
     }
 
     private fun setupRecyclerViews() {
@@ -81,55 +122,6 @@ class BlogListActivity : AppCompatActivity() {
         binding.trendingRecyclerView.adapter = trendingAdapter
     }
 
-//    private fun updateBlogList() {
-//        // Base query to get all blogs
-//        var query = db.collection("blogs")
-//
-//        // Apply category filter if not "All"
-//        if (currentCategory != "All") {
-//            query = query.whereEqualTo("category", currentCategory.lowercase())
-//        }
-//
-//        // Always sort by timestamp descending (newest first)
-//        query = query.orderBy("timestamp", Query.Direction.DESCENDING)
-//
-//        val options = FirestoreRecyclerOptions.Builder<Blog>()
-//            .setQuery(query, Blog::class.java)
-//            .build()
-//
-//        if (blogAdapter != null) {
-//            blogAdapter?.updateOptions(options)
-//        } else {
-//            blogAdapter = BlogAdapter(options, false) // false indicates vertical layout
-//            binding.recyclerView.adapter = blogAdapter
-//        }
-//    }
-    private fun updateBlogList() {
-        // Base collection reference to get all blogs
-        val blogsCollection = db.collection("blogs")
-
-        // Apply category filter if not "All"
-        var query: Query = blogsCollection
-        if (currentCategory != "All") {
-            query = blogsCollection.whereEqualTo("category", currentCategory.lowercase())
-        }
-
-        // Always sort by timestamp descending (newest first)
-        query = query.orderBy("timestamp", Query.Direction.DESCENDING)
-
-        val options = FirestoreRecyclerOptions.Builder<Blog>()
-        .setQuery(query, Blog::class.java)
-        .build()
-
-        if (blogAdapter != null) {
-            blogAdapter?.updateOptions(options)
-        } else {
-            blogAdapter = BlogAdapter(options, false) // false indicates vertical layout
-            binding.recyclerView.adapter = blogAdapter
-        }
-    }
-
-
     private fun setupFab() {
         binding.fab.setOnClickListener {
             startActivity(Intent(this, CreateBlogActivity::class.java))
@@ -143,8 +135,8 @@ class BlogListActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.action_delete_account -> {
-                startActivity(Intent(this, DeleteAccountActivity::class.java))
+            R.id.action_profile -> {
+                startActivity(Intent(this, UserProfileActivity::class.java))
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -161,6 +153,28 @@ class BlogListActivity : AppCompatActivity() {
         super.onStop()
         blogAdapter?.stopListening()
         trendingAdapter?.stopListening()
+    }
+
+    private fun showDeleteConfirmation(blog: Blog) {
+        AlertDialog.Builder(this)
+            .setTitle("Delete Blog")
+            .setMessage("Are you sure you want to delete this blog?")
+            .setPositiveButton("Delete") { _, _ ->
+                deleteBlog(blog)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun deleteBlog(blog: Blog) {
+        db.collection("blogs").document(blog.id)
+            .delete()
+            .addOnSuccessListener {
+                Toast.makeText(this, "Blog deleted successfully", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error deleting blog: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     inner class BlogAdapter(options: FirestoreRecyclerOptions<Blog>, private val isHorizontal: Boolean) :
@@ -180,6 +194,8 @@ class BlogListActivity : AppCompatActivity() {
         }
 
         override fun onBindViewHolder(holder: BlogViewHolder, position: Int, model: Blog) {
+            // Log each blog for debugging
+            Log.d("BlogAdapter", "Binding blog: ${model.title}, AuthorID: ${model.authorId}, Current user: ${auth.currentUser?.uid}")
             holder.bind(model)
         }
     }
@@ -191,8 +207,24 @@ class BlogListActivity : AppCompatActivity() {
             binding.titleText.text = blog.title
             binding.authorText.text = blog.authorName
             binding.authorDetailsText.text = "${blog.authorRole} • ${blog.authorDepartment}"
-            binding.categoryText.text = blog.category
-            binding.previewText.text = blog.content
+            binding.categoryText.text = Blog.getCategoryDisplayName(blog.category)
+            binding.previewText.text = if (blog.content.length > 100) {
+                "${blog.content.substring(0, 100)}..."
+            } else {
+                blog.content
+            }
+
+            // Set category text color based on category
+            val categoryColor = when (blog.category.lowercase()) {
+                "technical" -> android.graphics.Color.parseColor("#2196F3") // Blue
+                "research" -> android.graphics.Color.parseColor("#4CAF50") // Green
+                "interview" -> android.graphics.Color.parseColor("#FF9800") // Orange
+                else -> android.graphics.Color.GRAY
+            }
+            binding.categoryText.setBackgroundColor(categoryColor)
+
+            // Remove category text click listener as we only want top buttons to work
+            binding.categoryText.setOnClickListener(null)
 
             // Show edit/delete buttons only for the author
             val isAuthor = auth.currentUser?.uid == blog.authorId
@@ -216,27 +248,5 @@ class BlogListActivity : AppCompatActivity() {
                 showDeleteConfirmation(blog)
             }
         }
-    }
-
-    private fun showDeleteConfirmation(blog: Blog) {
-        AlertDialog.Builder(this)
-            .setTitle("Delete Blog")
-            .setMessage("Are you sure you want to delete this blog?")
-            .setPositiveButton("Delete") { _, _ ->
-                deleteBlog(blog)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun deleteBlog(blog: Blog) {
-        db.collection("blogs").document(blog.id)
-            .delete()
-            .addOnSuccessListener {
-                Toast.makeText(this, "Blog deleted successfully", Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Error deleting blog: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
     }
 } 

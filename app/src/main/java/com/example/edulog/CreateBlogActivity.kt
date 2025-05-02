@@ -64,9 +64,9 @@ class CreateBlogActivity : AppCompatActivity() {
     private fun setupSpinners() {
         // Setup category spinner
         val categories = arrayOf(
-            Blog.CATEGORY_TECHNICAL,
-            Blog.CATEGORY_RESEARCH,
-            Blog.CATEGORY_INTERVIEW
+            Blog.getCategoryDisplayName(Blog.CATEGORY_TECHNICAL),
+            Blog.getCategoryDisplayName(Blog.CATEGORY_RESEARCH),
+            Blog.getCategoryDisplayName(Blog.CATEGORY_INTERVIEW)
         )
         val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
         (binding.categorySpinner as? AutoCompleteTextView)?.setAdapter(categoryAdapter)
@@ -117,6 +117,15 @@ class CreateBlogActivity : AppCompatActivity() {
             db.collection("blogs").document()
         }
 
+        // Get the category and convert to lowercase for storing
+        val displayCategory = binding.categorySpinner.text.toString()
+        val categoryValue = when (displayCategory) {
+            Blog.getCategoryDisplayName(Blog.CATEGORY_TECHNICAL) -> Blog.CATEGORY_TECHNICAL
+            Blog.getCategoryDisplayName(Blog.CATEGORY_RESEARCH) -> Blog.CATEGORY_RESEARCH
+            Blog.getCategoryDisplayName(Blog.CATEGORY_INTERVIEW) -> Blog.CATEGORY_INTERVIEW
+            else -> displayCategory.lowercase()
+        }
+
         // Create blog object
         val blog = Blog(
             id = blogRef.id,
@@ -126,7 +135,7 @@ class CreateBlogActivity : AppCompatActivity() {
             authorName = currentUser.displayName ?: currentUser.email?.substringBefore("@") ?: "Anonymous",
             authorRole = userRole,
             authorDepartment = userDepartment,
-            category = binding.categorySpinner.text.toString(),
+            category = categoryValue,
             timestamp = if (editingBlogId == null) System.currentTimeMillis() else 0,
             lastModified = System.currentTimeMillis()
         )

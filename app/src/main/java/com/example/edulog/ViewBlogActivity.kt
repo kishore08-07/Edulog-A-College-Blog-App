@@ -64,7 +64,7 @@ class ViewBlogActivity : AppCompatActivity() {
         blog?.let {
             binding.titleText.text = it.title
             binding.authorText.text = "${it.authorName} • ${it.authorRole} • ${it.authorDepartment}"
-            binding.categoryText.text = it.category
+            binding.categoryText.text = Blog.getCategoryDisplayName(it.category)
             binding.contentText.text = it.content
             
             val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
