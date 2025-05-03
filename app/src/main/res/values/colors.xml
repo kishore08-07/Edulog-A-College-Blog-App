@@ -1,5 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Primary Theme Colors -->
+    <color name="primary">#1976D2</color>
+    <color name="primary_dark">#1565C0</color>
+    <color name="accent_color">#2196F3</color>
+
+    <!-- Background Colors -->
+    <color name="background_color">#F5F5F5</color>
+    <color name="toolbar_color">#FFFFFF</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="avatar_background">#E3F2FD</color>
+    <color name="category_background">#2196F3</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_tertiary">#9E9E9E</color>
+
+    <!-- Category Colors -->
+    <color name="category_technical">#2196F3</color>
+    <color name="category_research">#4CAF50</color>
+    <color name="category_interview">#FF9800</color>
+
+    <!-- Standard Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
 </resources>
