@@ -1,20 +1,26 @@
 package com.example.edulog
 
+import android.app.ProgressDialog
 import android.os.Bundle
+import android.util.Log
+import android.view.MenuItem
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 import com.example.edulog.databinding.ActivityCreateBlogBinding
 import com.example.edulog.models.Blog
+import com.example.edulog.utils.PlagiarismChecker
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 
-class CreateBlogActivity : AppCompatActivity() {
+class CreateBlogActivity : BaseActivity() {
     private lateinit var binding: ActivityCreateBlogBinding
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
+    private lateinit var plagiarismChecker: PlagiarismChecker
+    private var progressDialog: ProgressDialog? = null
     private var editingBlogId: String? = null
     private var userRole: String = ""
     private var userDepartment: String = ""
@@ -26,6 +32,7 @@ class CreateBlogActivity : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
+        plagiarismChecker = PlagiarismChecker(this)
 
         // Check if user is logged in
         if (auth.currentUser == null) {
@@ -42,6 +49,16 @@ class CreateBlogActivity : AppCompatActivity() {
         if (editingBlogId != null) {
             loadBlogData()
             binding.publishButton.text = "Update Blog"
+        }
+
+        // Setup toolbar with back button
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+        
+        // Handle back gestures with the helper method from BaseActivity
+        registerBackPressHandler {
+            handleBackNavigation()
         }
     }
 
@@ -75,7 +92,12 @@ class CreateBlogActivity : AppCompatActivity() {
     private fun setupButtons() {
         binding.publishButton.setOnClickListener {
             if (validateInputs()) {
-                publishBlog()
+                // If we're editing, skip plagiarism check
+                if (editingBlogId != null) {
+                    publishBlog()
+                } else {
+                    checkPlagiarismAndPublish()
+                }
             }
         }
     }
@@ -101,6 +123,70 @@ class CreateBlogActivity : AppCompatActivity() {
         }
 
         return true
+    }
+
+    private fun checkPlagiarismAndPublish() {
+        val content = binding.contentEditText.text.toString().trim()
+        
+        // Disable button to prevent multiple submissions
+        binding.publishButton.isEnabled = false
+        
+        // Show progress dialog
+        progressDialog = ProgressDialog(this).apply {
+            setMessage("Checking for plagiarism...")
+            setCancelable(false)
+            show()
+        }
+        
+        // Start plagiarism check
+        plagiarismChecker.checkPlagiarism(content, object : PlagiarismChecker.PlagiarismCheckListener {
+            override fun onCheckCompleted(percentage: Double, isAllowed: Boolean) {
+                runOnUiThread {
+                    progressDialog?.dismiss()
+                    
+                    val formattedPercentage = String.format("%.1f", percentage)
+                    
+                    if (isAllowed) {
+                        // Less than or equal to 40% plagiarism, proceed with publishing
+                        Toast.makeText(
+                            this@CreateBlogActivity,
+                            "Plagiarism check passed: $formattedPercentage%",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        publishBlog()
+                    } else {
+                        // More than 40% plagiarism, show warning dialog
+                        AlertDialog.Builder(this@CreateBlogActivity)
+                            .setTitle("High Plagiarism Detected")
+                            .setMessage("Your content has $formattedPercentage% plagiarism. Please reconsider your content.")
+                            .setPositiveButton("Edit Content") { _, _ ->
+                                // User will edit content
+                                binding.publishButton.isEnabled = true
+                            }
+                            .setCancelable(false)
+                            .show()
+                    }
+                }
+            }
+
+            override fun onError(message: String) {
+                runOnUiThread {
+                    progressDialog?.dismiss()
+                    
+                    // Re-enable the button
+                    binding.publishButton.isEnabled = true
+                    
+                    // Show error dialog with more information about API issues
+                    AlertDialog.Builder(this@CreateBlogActivity)
+                        .setTitle("Plagiarism Check Error")
+                        .setMessage("$message\n\nTo fix this issue:\n1. Check your Copyleaks account status\n2. Verify your API key is activated\n3. Try again later\n\nDo you want to publish without plagiarism checking?")
+                        .setPositiveButton("Publish Anyway") { _, _ -> publishBlog() }
+                        .setNegativeButton("Cancel", null)
+                        .setCancelable(false)
+                        .show()
+                }
+            }
+        })
     }
 
     private fun publishBlog() {
@@ -156,12 +242,6 @@ class CreateBlogActivity : AppCompatActivity() {
                 binding.publishButton.text = if (editingBlogId != null) "Update Blog" else "Publish Blog"
                 Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
             }
-            .addOnCanceledListener {
-                // Handle timeout or cancellation
-                binding.publishButton.isEnabled = true
-                binding.publishButton.text = if (editingBlogId != null) "Update Blog" else "Publish Blog"
-                Toast.makeText(this, "Operation timed out. Please try again.", Toast.LENGTH_LONG).show()
-            }
     }
 
     private fun loadBlogData() {
@@ -183,5 +263,31 @@ class CreateBlogActivity : AppCompatActivity() {
                 Toast.makeText(this, "Error loading blog: ${e.message}", Toast.LENGTH_SHORT).show()
                 finish()
             }
+    }
+    
+    private fun handleBackNavigation() {
+        try {
+            // Check if there's unsaved content before allowing back navigation
+            val title = binding.titleEditText.text.toString().trim()
+            val content = binding.contentEditText.text.toString().trim()
+            
+            if (title.isNotEmpty() || content.isNotEmpty()) {
+                // There is content that might be lost
+                AlertDialog.Builder(this)
+                    .setTitle("Discard Changes")
+                    .setMessage("You have unsaved changes. Are you sure you want to leave?")
+                    .setPositiveButton("Discard") { _, _ ->
+                        finish()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            } else {
+                finish()
+            }
+        } catch (e: Exception) {
+            Log.e("CreateBlog", "Error in handleBackNavigation: ${e.message}", e)
+            // Fall back to simple finish if there's an error
+            finish()
+        }
     }
 } 

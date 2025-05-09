@@ -35,6 +35,7 @@
 
             <!-- Trending Section -->
             <TextView
+                android:id="@+id/trendingLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Trending"
@@ -105,6 +106,44 @@
                 android:textStyle="bold"
                 android:textColor="@color/text_primary"
                 android:layout_marginBottom="12dp"/>
+
+            <!-- Empty State Layout - Hidden by default -->
+            <LinearLayout
+                android:id="@+id/emptyStateLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="gone"
+                android:padding="32dp">
+
+                <ImageView
+                    android:layout_width="150dp"
+                    android:layout_height="150dp"
+                    android:src="@drawable/ic_empty_blogs"
+                    android:contentDescription="No blogs found"
+                    android:alpha="0.7"/>
+
+                <TextView
+                    android:id="@+id/emptyStateText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No blogs found"
+                    android:textSize="18sp"
+                    android:textAlignment="center"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="16dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Try selecting a different category or create your own blog post"
+                    android:textSize="14sp"
+                    android:textAlignment="center"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="8dp"/>
+
+            </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerView"

@@ -2,10 +2,10 @@ package com.example.edulog
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import com.example.edulog.databinding.ActivityViewBlogBinding
 import com.example.edulog.models.Blog
 import com.google.firebase.auth.FirebaseAuth
@@ -13,7 +13,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.*
 
-class ViewBlogActivity : AppCompatActivity() {
+class ViewBlogActivity : BaseActivity() {
     private lateinit var binding: ActivityViewBlogBinding
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
@@ -40,6 +40,21 @@ class ViewBlogActivity : AppCompatActivity() {
         }
 
         loadBlog()
+        setupBackNavigation()
+    }
+
+    private fun setupBackNavigation() {
+        // Setup back press handler using helper method from BaseActivity
+        registerBackPressHandler {
+            try {
+                Log.d("ViewBlog", "Back navigation triggered, finishing activity")
+                finish()
+            } catch (e: Exception) {
+                Log.e("ViewBlog", "Error finishing activity: ${e.message}", e)
+                // Try alternative method to finish
+                finishAndRemoveTask()
+            }
+        }
     }
 
     private fun loadBlog() {
@@ -91,10 +106,6 @@ class ViewBlogActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            android.R.id.home -> {
-                finish()
-                true
-            }
             R.id.action_edit -> {
                 val intent = Intent(this, CreateBlogActivity::class.java)
                 intent.putExtra("blog_id", blogId)

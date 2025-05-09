@@ -64,6 +64,9 @@ dependencies {
     // Constraint Layout
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
+    // OkHttp for network requests
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

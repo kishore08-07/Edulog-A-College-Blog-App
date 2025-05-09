@@ -2,16 +2,16 @@ package com.example.edulog
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import com.example.edulog.databinding.ActivityUserProfileBinding
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
-class UserProfileActivity : AppCompatActivity() {
+class UserProfileActivity : BaseActivity() {
     private lateinit var binding: ActivityUserProfileBinding
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
@@ -25,12 +25,20 @@ class UserProfileActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
+        // Check if user is logged in
+        if (auth.currentUser == null) {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+            return
+        }
+
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Profile"
 
         loadUserData()
         setupClickListeners()
+        setupBackNavigation()
     }
 
     private fun loadUserData() {
@@ -253,8 +261,21 @@ class UserProfileActivity : AppCompatActivity() {
             }
     }
 
+    private fun setupBackNavigation() {
+        // Setup back press handler using helper method from BaseActivity
+        registerBackPressHandler {
+            try {
+                Log.d("UserProfile", "Back navigation triggered, finishing activity")
+                finish()
+            } catch (e: Exception) {
+                Log.e("UserProfile", "Error finishing activity: ${e.message}", e)
+                // Try alternative method to finish
+                finishAndRemoveTask()
+            }
+        }
+    }
+
     override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
-        return true
+        return super.onSupportNavigateUp()
     }
 } 
