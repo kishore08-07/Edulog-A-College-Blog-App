@@ -2,16 +2,18 @@ package com.example.edulog
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import com.example.edulog.databinding.ActivityLoginBinding
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 
-class LoginActivity : AppCompatActivity() {
+class LoginActivity : BaseActivity() {
+    private lateinit var binding: ActivityLoginBinding
     private lateinit var auth: FirebaseAuth
     private lateinit var emailEditText: TextInputEditText
     private lateinit var passwordEditText: TextInputEditText
@@ -20,17 +22,25 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
+        binding = ActivityLoginBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         auth = FirebaseAuth.getInstance()
 
-        // Initialize views
-        emailEditText = findViewById(R.id.emailEditText)
-        passwordEditText = findViewById(R.id.passwordEditText)
-        loginButton = findViewById(R.id.loginButton)
-        signupLink = findViewById(R.id.signupLink)
+        // Setup toolbar
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.title = "Login"
 
-        // Set click listeners
+        // Initialize views
+        emailEditText = binding.emailEditText
+        passwordEditText = binding.passwordEditText
+        loginButton = binding.loginButton
+        signupLink = binding.signUpLink
+
+        setupClickListeners()
+    }
+
+    private fun setupClickListeners() {
         loginButton.setOnClickListener {
             loginUser()
         }
@@ -47,7 +57,7 @@ class LoginActivity : AppCompatActivity() {
 
         // Validate inputs
         if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -56,13 +66,13 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        // Show loading state
-        loginButton.isEnabled = false
-        loginButton.text = "Logging in..."
+        // Show loading
+        binding.progressBar.visibility = View.VISIBLE
 
-        // Attempt login
         auth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener { task ->
+            .addOnCompleteListener(this) { task ->
+                binding.progressBar.visibility = View.GONE
+                
                 if (task.isSuccessful) {
                     val user = auth.currentUser
                     if (user != null) {
@@ -88,9 +98,6 @@ class LoginActivity : AppCompatActivity() {
                     }
                     Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
                 }
-                // Reset button state
-                loginButton.isEnabled = true
-                loginButton.text = "Login"
             }
     }
 } 

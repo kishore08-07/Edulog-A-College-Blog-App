@@ -30,6 +30,10 @@ class SignupActivity : AppCompatActivity() {
         binding = ActivitySignupBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Setup toolbar
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.title = "Sign Up"
+
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
@@ -48,7 +52,7 @@ class SignupActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        binding.signupButton.setOnClickListener {
+        binding.signUpButton.setOnClickListener {
             if (validateInputs()) {
                 createAccount()
             }
@@ -104,8 +108,8 @@ class SignupActivity : AppCompatActivity() {
         val email = binding.emailEditText.text.toString().trim()
         val password = binding.passwordEditText.text.toString()
 
-        binding.signupButton.isEnabled = false
-        binding.signupButton.text = "Creating Account..."
+        binding.signUpButton.isEnabled = false
+        binding.signUpButton.text = "Creating Account..."
 
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
@@ -164,8 +168,8 @@ class SignupActivity : AppCompatActivity() {
     }
 
     private fun handleError(message: String?) {
-        binding.signupButton.isEnabled = true
-        binding.signupButton.text = "Sign Up"
+        binding.signUpButton.isEnabled = true
+        binding.signUpButton.text = "Sign Up"
         Toast.makeText(this, "Error: ${message ?: "Unknown error"}", Toast.LENGTH_LONG).show()
     }
 } 
