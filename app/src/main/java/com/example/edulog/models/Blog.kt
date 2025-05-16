@@ -10,7 +10,9 @@ data class Blog(
     val authorDepartment: String = "", // Department code
     val category: String = "", // "technical", "research", or "interview"
     val timestamp: Long = System.currentTimeMillis(),
-    val lastModified: Long = System.currentTimeMillis()
+    val lastModified: Long = System.currentTimeMillis(),
+    val likes: Int = 0,
+    val likedBy: List<String> = listOf() // List of user IDs who liked this blog
 ) {
     companion object {
         const val CATEGORY_TECHNICAL = "technical"

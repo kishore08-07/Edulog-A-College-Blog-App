@@ -126,8 +126,8 @@ class PlagiarismChecker(private val context: Context) {
                 Thread.sleep(1500)
                 // Use Handler to call back on main thread
                 Handler(android.os.Looper.getMainLooper()).post {
-                    // Content is allowed if plagiarism is <= 40%
-                    listener.onCheckCompleted(percentage, percentage <= 40.0)
+                    // Content is allowed if plagiarism is <= 20%
+                    listener.onCheckCompleted(percentage, percentage <= 20.0)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in simulated check", e)

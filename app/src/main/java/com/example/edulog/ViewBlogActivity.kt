@@ -90,8 +90,80 @@ class ViewBlogActivity : BaseActivity() {
                 binding.lastModifiedText.visibility = android.view.View.VISIBLE
             }
 
+            // Setup like button
+            val currentUserId = auth.currentUser?.uid
+            val isLiked = currentUserId in it.likedBy
+            binding.likeButton.setImageResource(
+                if (isLiked) R.drawable.ic_like_filled else R.drawable.ic_like
+            )
+            binding.likeCount.text = it.likes.toString()
+
+            // Like button click listener
+            binding.likeContainer.setOnClickListener { _ ->
+                if (auth.currentUser != null) {
+                    toggleLike()
+                } else {
+                    Toast.makeText(this, "Please login to like blogs", Toast.LENGTH_SHORT).show()
+                }
+            }
+
             // Show edit/delete menu only for the author
             invalidateOptionsMenu()
+        }
+    }
+
+    private fun toggleLike() {
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            Toast.makeText(this, "Please login to like blogs", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (blogId == null) {
+            Toast.makeText(this, "Error: Blog not found", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val blogRef = db.collection("blogs").document(blogId!!)
+
+        // Show loading state
+        binding.likeContainer.isEnabled = false
+
+        db.runTransaction { transaction ->
+            val snapshot = transaction.get(blogRef)
+            if (!snapshot.exists()) {
+                throw Exception("Blog not found")
+            }
+
+            val currentLikedBy = snapshot.get("likedBy") as? List<String> ?: listOf()
+            
+            if (userId in currentLikedBy) {
+                // Unlike: Remove user from likedBy array
+                val updatedLikedBy = currentLikedBy.filter { it != userId }
+                transaction.update(blogRef, 
+                    mapOf(
+                        "likedBy" to updatedLikedBy,
+                        "likes" to updatedLikedBy.size
+                    )
+                )
+            } else {
+                // Like: Add user to likedBy array
+                val updatedLikedBy = currentLikedBy + userId
+                transaction.update(blogRef, 
+                    mapOf(
+                        "likedBy" to updatedLikedBy,
+                        "likes" to updatedLikedBy.size
+                    )
+                )
+            }
+        }.addOnSuccessListener {
+            Log.d("ViewBlog", "Like toggled successfully for blog $blogId")
+            binding.likeContainer.isEnabled = true
+            loadBlog() // Reload blog to update UI
+        }.addOnFailureListener { e ->
+            Log.e("ViewBlog", "Error toggling like for blog $blogId: ${e.message}", e)
+            binding.likeContainer.isEnabled = true
+            Toast.makeText(this, "Error updating like. Please try again.", Toast.LENGTH_SHORT).show()
         }
     }
 

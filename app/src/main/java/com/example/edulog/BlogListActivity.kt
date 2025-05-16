@@ -85,12 +85,14 @@ class BlogListActivity : BaseActivity() {
             // Create the base query
             val query = when (category) {
                 "All" -> {
+                    // Show all blogs sorted by timestamp (latest first)
                     db.collection("blogs")
                         .orderBy("timestamp", Query.Direction.DESCENDING)
                 }
                 else -> {
                     val categoryValue = category.lowercase()
                     Log.d("BlogList", "Using category value for query: $categoryValue")
+                    // Show category-specific blogs sorted by timestamp
                     db.collection("blogs")
                         .whereEqualTo("category", categoryValue)
                         .orderBy("timestamp", Query.Direction.DESCENDING)
@@ -157,10 +159,11 @@ class BlogListActivity : BaseActivity() {
             // Stop existing adapter if it exists
             trendingAdapter?.stopListening()
             
-            // Query for trending blogs - most recent 5 blogs regardless of category
+            // Query for trending blogs - most liked blogs regardless of user
             val trendingQuery = db.collection("blogs")
-                .orderBy("timestamp", Query.Direction.DESCENDING)
-                .limit(5)
+                .orderBy("likes", Query.Direction.DESCENDING) // Sort by likes first
+                .orderBy("timestamp", Query.Direction.DESCENDING) // Then by timestamp
+                .limit(5) // Show top 5 most liked blogs
 
             val options = FirestoreRecyclerOptions.Builder<Blog>()
                 .setQuery(trendingQuery, Blog::class.java)
@@ -284,6 +287,56 @@ class BlogListActivity : BaseActivity() {
             }
     }
 
+    private fun toggleLike(blog: Blog) {
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            Toast.makeText(this, "Please login to like blogs", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val blogRef = db.collection("blogs").document(blog.id)
+
+        // Show loading state
+        binding.root.isEnabled = false
+
+        db.runTransaction { transaction ->
+            val snapshot = transaction.get(blogRef)
+            if (!snapshot.exists()) {
+                throw Exception("Blog not found")
+            }
+
+            val currentLikedBy = snapshot.get("likedBy") as? List<String> ?: listOf()
+            
+            if (userId in currentLikedBy) {
+                // Unlike: Remove user from likedBy array
+                val updatedLikedBy = currentLikedBy.filter { it != userId }
+                transaction.update(blogRef, 
+                    mapOf(
+                        "likedBy" to updatedLikedBy,
+                        "likes" to updatedLikedBy.size
+                    )
+                )
+            } else {
+                // Like: Add user to likedBy array
+                val updatedLikedBy = currentLikedBy + userId
+                transaction.update(blogRef, 
+                    mapOf(
+                        "likedBy" to updatedLikedBy,
+                        "likes" to updatedLikedBy.size
+                    )
+                )
+            }
+        }.addOnSuccessListener {
+            Log.d("BlogList", "Like toggled successfully for blog ${blog.id}")
+            // FirestoreRecyclerAdapter will handle the update automatically
+            binding.root.isEnabled = true
+        }.addOnFailureListener { e ->
+            Log.e("BlogList", "Error toggling like for blog ${blog.id}: ${e.message}", e)
+            binding.root.isEnabled = true
+            Toast.makeText(this, "Error updating like. Please try again.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     inner class BlogAdapter(options: FirestoreRecyclerOptions<Blog>, private val isHorizontal: Boolean) :
         FirestoreRecyclerAdapter<Blog, BlogViewHolder>(options) {
 
@@ -388,8 +441,22 @@ class BlogListActivity : BaseActivity() {
                 }
                 binding.categoryText.setBackgroundColor(categoryColor)
 
-                // Remove category text click listener as we only want top buttons to work
-                binding.categoryText.setOnClickListener(null)
+                // Setup like button
+                val currentUserId = auth.currentUser?.uid
+                val isLiked = currentUserId in blog.likedBy
+                binding.likeButton.setImageResource(
+                    if (isLiked) R.drawable.ic_like_filled else R.drawable.ic_like
+                )
+                binding.likeCount.text = blog.likes.toString()
+
+                // Like button click listener
+                binding.likeContainer.setOnClickListener {
+                    if (auth.currentUser != null) {
+                        toggleLike(blog)
+                    } else {
+                        Toast.makeText(this@BlogListActivity, "Please login to like blogs", Toast.LENGTH_SHORT).show()
+                    }
+                }
 
                 // Show edit/delete buttons only for the author
                 val isAuthor = auth.currentUser?.uid == blog.authorId

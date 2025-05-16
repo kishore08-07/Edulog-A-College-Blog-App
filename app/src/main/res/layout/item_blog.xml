@@ -90,7 +90,36 @@
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- Like Button and Counter -->
+                <LinearLayout
+                    android:id="@+id/likeContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="4dp">
+
+                    <ImageView
+                        android:id="@+id/likeButton"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_like"
+                        android:contentDescription="Like blog"/>
+
+                    <TextView
+                        android:id="@+id/likeCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginStart="4dp"
+                        android:text="0"/>
+
+                </LinearLayout>
 
                 <ImageButton
                     android:id="@+id/editButton"
@@ -99,7 +128,8 @@
                     android:src="@drawable/ic_edit"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Edit blog"
-                    android:visibility="gone"/>
+                    android:visibility="gone"
+                    android:layout_marginStart="8dp"/>
 
                 <ImageButton
                     android:id="@+id/deleteButton"
